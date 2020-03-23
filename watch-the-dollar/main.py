@@ -16,6 +16,7 @@ class CURRENCY():
         self.cur_converted_value = float(self.CHECK())
         #by default difference is 3rub, but it may be customized as user need
         self.DIF = difference
+        self.date = str(time.ctime())
         
     
     def CHECK(self):
@@ -23,22 +24,40 @@ class CURRENCY():
         soup = BS(self.full_page.content, 'html.parser')
         convert = soup.findAll("span", {"class":"DFlfde SwHCTb", "data-precision":"2"}) 
         return str(convert[0].text).replace(",", ".")
+    
         
     def value_out(self):
         currency = float(self.CHECK())
         
         #Here is warning about changes >= difference
+        design = "-" * 100
         if currency >= self.cur_converted_value + self.DIF:
             print("!!! WARNING !!!")
             print("Big fall of ₽")
-            self.SEND()
+
+            t_dif = currency - self.cur_converted_value
+            additional_text = "Watch out for $/₽ jumps/falls!\n\n  Since {} price for 1$ has grown by {}₽.\n  For now 1$ equals {}₽\n\n{}\n If you wish to be informed about less or more significant changes in currency\nREPLY to this email and describe size of changes you'd prefer to know about".format(self.date, t_dif, currency, design)
+            additional_text = ''.join(additional_text)#.encode('utf-8')
+            fall = "-- Big fall of ₽"
+            
+            self.SEND(additional_text, fall)
+            
             self.cur_converted_value = currency
+            self.date = str(time.ctime())
             
         elif currency <= self.cur_converted_value - self.DIF:
             print("!!! WARNING !!!")
             print("Big jump of ₽")
-            self.SEND()
+            
+            t_dif = self.cur_converted_value - currency
+            additional_text = "Watch out for $/₽ jumps/falls!\n\n  Since {} price for 1$ has fallen by {}₽.\n  For now 1$ equals {}₽\n\n{}\nIf you wish to be informed about less or more significant changes in currency reply to this email and describe size of changes you'd prefer to know about".format(self.date, t_dif, currency, design)
+            additional_text = ''.join(additional_text)#.encode('utf-8')
+            jump = "-- Big jump of ₽"
+            
+            self.SEND(additional_text, jump)
+            
             self.cur_converted_value = currency
+            self.date = str(time.ctime())
             
         soup = BS(self.full_page.content, 'html.parser')
         convert = soup.findAll("span", {"class":"DFlfde SwHCTb", "data-precision":"2"})
@@ -49,24 +68,26 @@ class CURRENCY():
         print("1$ equals", str(currency).replace(".", ",") + "₽")
         print()
         
-        time.sleep(60)
+        time.sleep(60 * 30)
         self.value_out()
         
-    def SEND(self, val):
+        
+        
+    def SEND(self, text, sub):
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.ehlo()
         server.starttls()
         server.ehlo()
-        
+
         #write your mail adress here  and  put the password that you get from google
         server.login("ix2.evdokimov@gmail.com", "rtcbevadisynmtxg")
         
         #pripare message to warn you about currensy changings 
-        subject = "!Currency"
-        body = "Watch out for $/₽ jumps/falls"
+        subject = "!Currency" + sub
+        body = text
         message = 'Subject:{}\n\n{}'.format(subject, body)
         
-        server.sendmail("ix2.evdokimov@gail.com", "ix2.evdokimov@gmail.com", message)
+        server.sendmail("ix2.evdokimov@gmail.com", ["ix2.evdokimov@gmail.com", "i_a_evdokimov@gmail.com", "fedor.ig.evdokimov@gmail.com", "gumbin.maksim@yandex.ru"], message)
         
         server.quit()
         
@@ -75,5 +96,3 @@ class CURRENCY():
     
 start = CURRENCY()
 start.value_out()
-
-print("this print is useless")
